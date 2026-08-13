@@ -1,222 +1,216 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Box, Typography, Card, CircularProgress, Avatar, Chip } from "@mui/material";
+import { useState } from "react";
+import { Box, Typography, Card, Avatar, Grid, Button } from "@mui/material";
 import { useRouter } from "@/i18n/routing";
 import { useLiff } from "@/contexts/LiffContext";
-import { supabase, Transaction } from "@/lib/supabase";
-import { format } from "date-fns";
-import { th } from "date-fns/locale";
-
-type Mode = "stock" | "rental";
+import StorefrontIcon from "@mui/icons-material/Storefront";
+import PointOfSaleIcon from "@mui/icons-material/PointOfSale";
+import InventoryIcon from "@mui/icons-material/Inventory";
+import InsightsIcon from "@mui/icons-material/Insights";
+import MeetingRoomIcon from "@mui/icons-material/MeetingRoom";
+import DirectionsCarIcon from "@mui/icons-material/DirectionsCar";
+import SettingsSuggestIcon from "@mui/icons-material/SettingsSuggest";
 
 export default function HomePage() {
   const router = useRouter();
-  const { profile, isLoading: liffLoading } = useLiff();
-  const [mode, setMode] = useState<Mode>("stock");
-  const [recentTx, setRecentTx] = useState<Transaction[]>([]);
-  const [loadingTx, setLoadingTx] = useState(true);
-
-  useEffect(() => {
-    loadRecent();
-  }, []);
-
-  const loadRecent = async () => {
-    setLoadingTx(true);
-    const { data } = await supabase
-      .from("transactions")
-      .select("*")
-      .order("created_at", { ascending: false })
-      .limit(4);
-    setRecentTx(data || []);
-    setLoadingTx(false);
-  };
-
-  if (liffLoading) {
-    return (
-      <Box sx={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 2, bgcolor: "#f0fdf4" }}>
-        <CircularProgress sx={{ color: "#16a34a" }} size={48} />
-        <Typography sx={{ fontSize: "1.2rem", color: "#16a34a", fontWeight: 600 }}>กำลังเชื่อมต่อ LINE...</Typography>
-      </Box>
-    );
-  }
+  const { profile } = useLiff();
 
   return (
-    <Box sx={{ minHeight: "100vh", bgcolor: mode === "stock" ? "#f0fdf4" : "#faf5ff", pb: "120px" }}>
-      {/* Header */}
+    <Box sx={{ minHeight: "100vh", bgcolor: "#f8fafc", pb: 6 }}>
+      {/* Top Banner Header */}
       <Box
         sx={{
-          background: mode === "stock"
-            ? "linear-gradient(135deg, #16a34a 0%, #15803d 100%)"
-            : "linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%)",
-          px: 3, pt: 5, pb: 3,
+          background: "linear-gradient(135deg, #0f172a 0%, #1e293b 100%)",
+          px: 3, pt: 6, pb: 4,
           borderRadius: "0 0 32px 32px",
-          boxShadow: mode === "stock"
-            ? "0 4px 20px rgba(22,163,74,0.3)"
-            : "0 4px 20px rgba(124,58,237,0.3)",
-          transition: "background 0.3s",
+          boxShadow: "0 8px 30px rgba(15,23,42,0.15)",
+          color: "white"
         }}
       >
-        <Box display="flex" alignItems="center" gap={2} mb={2.5}>
+        <Box display="flex" alignItems="center" gap={2} mb={2}>
           {profile?.pictureUrl ? (
-            <Avatar src={profile.pictureUrl} alt={profile.displayName} sx={{ width: 52, height: 52, border: "3px solid rgba(255,255,255,0.8)" }} />
+            <Avatar src={profile.pictureUrl} alt={profile.displayName} sx={{ width: 56, height: 56, border: "3px solid rgba(255,255,255,0.8)" }} />
           ) : (
-            <Avatar sx={{ width: 52, height: 52, bgcolor: "rgba(255,255,255,0.3)", fontSize: "1.4rem" }}>👤</Avatar>
+            <Avatar sx={{ width: 56, height: 56, bgcolor: "rgba(255,255,255,0.2)", fontSize: "1.4rem" }}>👤</Avatar>
           )}
           <Box>
-            <Typography sx={{ color: "rgba(255,255,255,0.8)", fontSize: "0.9rem" }}>สวัสดี</Typography>
-            <Typography sx={{ color: "white", fontSize: "1.25rem", fontWeight: 700 }}>
-              {profile?.displayName || "คุณแม่"}
+            <Typography sx={{ color: "rgba(255,255,255,0.75)", fontSize: "0.85rem" }}>ยินดีต้อนรับ</Typography>
+            <Typography sx={{ fontSize: "1.35rem", fontWeight: 900 }}>
+              {profile?.displayName || "คุณแม่ / ทีมงานครอบครัว"}
             </Typography>
           </Box>
         </Box>
 
-        {/* Mode Selector */}
-        <Box
-          sx={{
-            display: "flex",
-            bgcolor: "rgba(0,0,0,0.2)",
-            borderRadius: "20px",
-            p: 0.75,
-            gap: 0.75,
-          }}
-        >
-          {[
-            { key: "stock", label: "📦 สต๊อกของ" },
-            { key: "rental", label: "🏠 ค่าเช่า" },
-          ].map((m) => (
-            <Box
-              key={m.key}
-              onClick={() => setMode(m.key as Mode)}
-              sx={{
-                flex: 1,
-                textAlign: "center",
-                py: 1.25,
-                borderRadius: "14px",
-                bgcolor: mode === m.key ? "rgba(255,255,255,0.95)" : "transparent",
-                cursor: "pointer",
-                transition: "all 0.2s",
-              }}
-            >
-              <Typography
-                sx={{
-                  fontSize: "1rem",
-                  fontWeight: 800,
-                  color: mode === m.key
-                    ? (m.key === "stock" ? "#16a34a" : "#7c3aed")
-                    : "rgba(255,255,255,0.75)",
-                }}
-              >
-                {m.label}
-              </Typography>
-            </Box>
-          ))}
+        <Typography variant="h4" sx={{ fontWeight: 950, letterSpacing: "-0.5px" }}>
+          🏢 StoreHouse
+        </Typography>
+        <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.7)" }}>
+          ระบบจัดการ 3 ธุรกิจครอบครัวแบบครบวงจร
+        </Typography>
+      </Box>
+
+      {/* 3 Business Modules Container */}
+      <Box sx={{ px: 3, mt: 4, display: "flex", flexDirection: "column", gap: 4 }}>
+        
+        {/* Stream 1: Grocery & Retail */}
+        <Box>
+          <Typography variant="h6" sx={{ fontWeight: 900, color: "#1e293b", mb: 2, display: "flex", alignItems: "center", gap: 1 }}>
+            <StorefrontIcon sx={{ color: "#16a34a" }} /> 1. ร้านค้าโชห่วย (Grocery Shop)
+          </Typography>
+          <Grid container spacing={2}>
+            <Grid size={{ xs: 12, sm: 4 }}>
+              <ActionCard
+                emoji="🛒"
+                icon={<PointOfSaleIcon sx={{ fontSize: 36 }} />}
+                title="POS ขายของ"
+                subtitle="สแกนบาร์โค้ด & คิดเงินทอนด่วน"
+                color1="#16a34a"
+                color2="#22c55e"
+                shadow="rgba(22,163,74,0.15)"
+                onClick={() => router.push("/pos")}
+              />
+            </Grid>
+            <Grid size={{ xs: 12, sm: 4 }}>
+              <ActionCard
+                emoji="📦"
+                icon={<InventoryIcon sx={{ fontSize: 36 }} />}
+                title="คลังสินค้าสต๊อก"
+                subtitle="ต้นทุน-กำไร & แจ้งเตือนหมดอายุ"
+                color1="#1d4ed8"
+                color2="#3b82f6"
+                shadow="rgba(29,78,216,0.15)"
+                onClick={() => router.push("/products")}
+              />
+            </Grid>
+            <Grid size={{ xs: 12, sm: 4 }}>
+              <ActionCard
+                emoji="📊"
+                icon={<InsightsIcon sx={{ fontSize: 36 }} />}
+                title="สรุปยอดขาย & กำไร"
+                subtitle="ดูประวัติบิลและกำไรสุทธิ"
+                color1="#0f172a"
+                color2="#334155"
+                shadow="rgba(15,23,42,0.15)"
+                onClick={() => router.push("/sales")}
+              />
+            </Grid>
+          </Grid>
         </Box>
-      </Box>
 
-      {/* Content by mode */}
-      <Box sx={{ px: 3, mt: 3.5, display: "flex", flexDirection: "column", gap: 2.5 }}>
-        {mode === "stock" ? (
-          <>
-            <ActionCard
-              emoji="📦" title="รับของเข้า" subtitle="บันทึกสินค้าที่เพิ่มเข้าคลัง"
-              color1="#16a34a" color2="#22c55e" shadow="rgba(22,163,74,0.35)"
-              onClick={() => router.push("/receive")}
-            />
-            <ActionCard
-              emoji="🛒" title="เบิกของออก" subtitle="บันทึกสินค้าที่นำออกจากคลัง"
-              color1="#dc2626" color2="#ef4444" shadow="rgba(220,38,38,0.35)"
-              onClick={() => router.push("/withdraw")}
-            />
-            <ActionCard
-              emoji="📊" title="ดูสต๊อกสินค้า" subtitle="ตรวจสอบของคงเหลือในคลัง"
-              color1="#1e40af" color2="#2563eb" shadow="rgba(29,78,216,0.25)"
-              onClick={() => router.push("/stock")}
-            />
+        {/* Stream 2: Room Rental */}
+        <Box>
+          <Typography variant="h6" sx={{ fontWeight: 900, color: "#1e293b", mb: 2, display: "flex", alignItems: "center", gap: 1 }}>
+            <MeetingRoomIcon sx={{ color: "#7c3aed" }} /> 2. บ้านเช่า/ห้องเช่า (Room Rental)
+          </Typography>
+          <Grid container spacing={2}>
+            <Grid size={{ xs: 12 }}>
+              <ActionCard
+                emoji="🏠"
+                icon={<MeetingRoomIcon sx={{ fontSize: 36 }} />}
+                title="จัดการห้องพัก (10 ห้อง)"
+                subtitle="การ์ดสถานะผู้เช่า, ค้างชำระ & ออกบิลเหมาจ่ายน้ำไฟ 200 บาท"
+                color1="#7c3aed"
+                color2="#8b5cf6"
+                shadow="rgba(124,58,237,0.15)"
+                onClick={() => router.push("/rooms")}
+              />
+            </Grid>
+          </Grid>
+        </Box>
 
-            {/* Recent stock transactions */}
-            <Box mt={1}>
-              <Box display="flex" justifyContent="space-between" alignItems="center" mb={1.5}>
-                <Typography sx={{ fontSize: "1.1rem", fontWeight: 700, color: "#374151" }}>รายการล่าสุด</Typography>
-                <Typography onClick={() => router.push("/history")} sx={{ fontSize: "0.95rem", color: "#16a34a", fontWeight: 600, cursor: "pointer" }}>
-                  ดูทั้งหมด →
-                </Typography>
-              </Box>
-              {loadingTx ? (
-                <Box display="flex" justifyContent="center" py={3}><CircularProgress size={28} sx={{ color: "#16a34a" }} /></Box>
-              ) : recentTx.length === 0 ? (
-                <Card sx={{ borderRadius: "16px", p: 3, textAlign: "center", bgcolor: "white", border: "2px dashed #e2e8f0" }}>
-                  <Typography sx={{ fontSize: "1rem", color: "#94a3b8" }}>ยังไม่มีรายการ</Typography>
-                </Card>
-              ) : (
-                <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
-                  {recentTx.map((tx) => (
-                    <Card key={tx.id} sx={{ borderRadius: "14px", p: 2, bgcolor: "white", boxShadow: "0 2px 8px rgba(0,0,0,0.05)", display: "flex", alignItems: "center", gap: 2 }}>
-                      <Box sx={{ width: 40, height: 40, borderRadius: "10px", bgcolor: tx.type === "receive" ? "#dcfce7" : "#fee2e2", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.2rem", flexShrink: 0 }}>
-                        {tx.type === "receive" ? "📦" : "🛒"}
-                      </Box>
-                      <Box flex={1} minWidth={0}>
-                        <Typography sx={{ fontSize: "1rem", fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{tx.item_name}</Typography>
-                        <Typography sx={{ fontSize: "0.82rem", color: "#9ca3af" }}>
-                          {format(new Date(tx.created_at), "d MMM HH:mm", { locale: th })}
-                        </Typography>
-                      </Box>
-                      <Typography sx={{ fontSize: "1.1rem", fontWeight: 800, color: tx.type === "receive" ? "#16a34a" : "#dc2626", flexShrink: 0 }}>
-                        {tx.type === "receive" ? "+" : "-"}{tx.quantity}
-                      </Typography>
-                    </Card>
-                  ))}
-                </Box>
-              )}
-            </Box>
-          </>
-        ) : (
-          <>
-            <ActionCard
-              emoji="🏠" title="รายการห้อง/บ้าน" subtitle="ดูสถานะผู้เช่าทั้งหมด"
-              color1="#7c3aed" color2="#8b5cf6" shadow="rgba(124,58,237,0.35)"
-              onClick={() => router.push("/rental")}
-            />
-            <ActionCard
-              emoji="⚡" title="บันทึกค่าไฟ" subtitle="จดมิตเตอร์และคำนวณค่าไฟรายเดือน"
-              color1="#d97706" color2="#f59e0b" shadow="rgba(217,119,6,0.35)"
-              onClick={() => router.push("/rental/electricity")}
-            />
-            <ActionCard
-              emoji="📋" title="ประวัติค่าเช่า/ค่าไฟ" subtitle="รายการเก็บเงินและสถานะการชำระ"
-              color1="#0891b2" color2="#06b6d4" shadow="rgba(8,145,178,0.25)"
-              onClick={() => router.push("/rental/history")}
-            />
-          </>
-        )}
-      </Box>
+        {/* Stream 3: Parking Rental */}
+        <Box>
+          <Typography variant="h6" sx={{ fontWeight: 900, color: "#1e293b", mb: 2, display: "flex", alignItems: "center", gap: 1 }}>
+            <DirectionsCarIcon sx={{ color: "#0891b2" }} /> 3. ที่จอดรถให้เช่า (Parking Slots)
+          </Typography>
+          <Grid container spacing={2}>
+            <Grid size={{ xs: 12 }}>
+              <ActionCard
+                emoji="🚗"
+                icon={<DirectionsCarIcon sx={{ fontSize: 36 }} />}
+                title="ตารางกริดที่จอดรถ (8 ช่อง)"
+                subtitle="บันทึกเลขทะเบียนรถ, ชื่อเจ้าของ และเก็บเงินค่าเช่าช่องจอดรายเดือน"
+                color1="#0891b2"
+                color2="#06b6d4"
+                shadow="rgba(8,145,178,0.15)"
+                onClick={() => router.push("/parking")}
+              />
+            </Grid>
+          </Grid>
+        </Box>
 
-      {/* Bottom Nav */}
-      <Box sx={{ position: "fixed", bottom: 0, left: 0, right: 0, bgcolor: "white", borderTop: "1px solid #e2e8f0", display: "flex", py: 1.5, px: 1, boxShadow: "0 -4px 20px rgba(0,0,0,0.08)" }}>
-        {[
-          { icon: "🏠", label: "หน้าหลัก", path: "/" },
-          { icon: "📦", label: "รับของ",   path: "/receive" },
-          { icon: "🛒", label: "เบิกของ",  path: "/withdraw" },
-          { icon: "⚡", label: "ค่าไฟ",    path: "/rental/electricity" },
-          { icon: "📊", label: "สต๊อก",    path: "/stock" },
-        ].map((nav) => (
-          <Box
-            key={nav.path}
-            onClick={() => router.push(nav.path as any)}
-            sx={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 0.4, cursor: "pointer", py: 0.5, borderRadius: "10px" }}
-          >
-            <Typography sx={{ fontSize: "1.3rem", lineHeight: 1 }}>{nav.icon}</Typography>
-            <Typography sx={{ fontSize: "0.68rem", fontWeight: 500, color: "#9ca3af" }}>{nav.label}</Typography>
-          </Box>
-        ))}
+        {/* Section: Classic Tools Fallback */}
+        <Box sx={{ mt: 2, pt: 3, borderTop: "1px dashed #cbd5e1" }}>
+          <Typography variant="subtitle2" sx={{ fontWeight: 800, color: "#64748b", mb: 2, display: "flex", alignItems: "center", gap: 1 }}>
+            <SettingsSuggestIcon fontSize="small" /> 🛠️ เครื่องมือคลังสินค้า/จดมิตเตอร์เดิม (Classic System)
+          </Typography>
+          <Grid container spacing={2}>
+            <Grid size={{ xs: 6, sm: 3 }}>
+              <Button
+                fullWidth
+                variant="outlined"
+                onClick={() => router.push("/receive")}
+                sx={{ py: 1.5, fontSize: "0.9rem", color: "#64748b", borderColor: "#cbd5e1" }}
+              >
+                📥 รับของเข้า (เดิม)
+              </Button>
+            </Grid>
+            <Grid size={{ xs: 6, sm: 3 }}>
+              <Button
+                fullWidth
+                variant="outlined"
+                onClick={() => router.push("/withdraw")}
+                sx={{ py: 1.5, fontSize: "0.9rem", color: "#64748b", borderColor: "#cbd5e1" }}
+              >
+                📤 เบิกของออก (เดิม)
+              </Button>
+            </Grid>
+            <Grid size={{ xs: 6, sm: 3 }}>
+              <Button
+                fullWidth
+                variant="outlined"
+                onClick={() => router.push("/stock")}
+                sx={{ py: 1.5, fontSize: "0.9rem", color: "#64748b", borderColor: "#cbd5e1" }}
+              >
+                📦 ดูสต๊อกเดิม
+              </Button>
+            </Grid>
+            <Grid size={{ xs: 6, sm: 3 }}>
+              <Button
+                fullWidth
+                variant="outlined"
+                onClick={() => router.push("/rental/electricity")}
+                sx={{ py: 1.5, fontSize: "0.9rem", color: "#64748b", borderColor: "#cbd5e1" }}
+              >
+                ⚡ จดมิตเตอร์ไฟ (เดิม)
+              </Button>
+            </Grid>
+          </Grid>
+        </Box>
+
       </Box>
     </Box>
   );
 }
 
-function ActionCard({ emoji, title, subtitle, color1, color2, shadow, onClick }: {
-  emoji: string; title: string; subtitle: string;
-  color1: string; color2: string; shadow: string;
+function ActionCard({
+  emoji,
+  icon,
+  title,
+  subtitle,
+  color1,
+  color2,
+  shadow,
+  onClick
+}: {
+  emoji: string;
+  icon: React.ReactNode;
+  title: string;
+  subtitle: string;
+  color1: string;
+  color2: string;
+  shadow: string;
   onClick: () => void;
 }) {
   return (
@@ -224,19 +218,45 @@ function ActionCard({ emoji, title, subtitle, color1, color2, shadow, onClick }:
       onClick={onClick}
       sx={{
         background: `linear-gradient(135deg, ${color1} 0%, ${color2} 100%)`,
-        borderRadius: "22px", p: 3.5, cursor: "pointer",
-        boxShadow: `0 8px 28px ${shadow}`,
-        transition: "transform 0.15s",
-        "&:active": { transform: "scale(0.97)" },
-        display: "flex", alignItems: "center", gap: 2.5,
+        borderRadius: "22px",
+        p: 3,
+        cursor: "pointer",
+        boxShadow: `0 8px 24px ${shadow}`,
+        color: "white",
+        transition: "transform 0.15s, box-shadow 0.15s",
+        "&:hover": {
+          transform: "translateY(-3px)",
+          boxShadow: `0 12px 30px ${shadow}`
+        },
+        "&:active": {
+          transform: "scale(0.98)"
+        },
+        display: "flex",
+        alignItems: "center",
+        gap: 2.5
       }}
     >
-      <Box sx={{ width: 64, height: 64, bgcolor: "rgba(255,255,255,0.22)", borderRadius: "18px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "2rem", flexShrink: 0 }}>
-        {emoji}
+      <Box
+        sx={{
+          width: 60,
+          height: 60,
+          bgcolor: "rgba(255,255,255,0.2)",
+          borderRadius: "16px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          flexShrink: 0
+        }}
+      >
+        {icon}
       </Box>
       <Box>
-        <Typography sx={{ color: "white", fontSize: "1.55rem", fontWeight: 800, lineHeight: 1.2 }}>{title}</Typography>
-        <Typography sx={{ color: "rgba(255,255,255,0.82)", fontSize: "0.92rem", mt: 0.4 }}>{subtitle}</Typography>
+        <Typography variant="h6" sx={{ fontWeight: 900, lineHeight: 1.2 }}>
+          {title}
+        </Typography>
+        <Typography sx={{ color: "rgba(255,255,255,0.85)", fontSize: "0.85rem", mt: 0.5, fontWeight: 500 }}>
+          {subtitle}
+        </Typography>
       </Box>
     </Card>
   );

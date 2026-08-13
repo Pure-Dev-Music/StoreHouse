@@ -32,3 +32,54 @@ export type Transaction = {
   line_picture_url?: string;
   created_at: string;
 };
+
+export type Product = {
+  id: string;
+  barcode: string | null;
+  name: string;
+  cost_price: number;
+  selling_price: number;
+  stock_qty: number;
+  expiry_date: string | null;
+  created_at: string;
+};
+
+export type Sale = {
+  id: string;
+  total_amount: number;
+  total_cost: number;
+  total_profit: number;
+  created_at: string;
+};
+
+export type SaleItem = {
+  id: string;
+  sale_id: string;
+  product_id: string | null;
+  quantity: number;
+  unit_price: number;
+  unit_cost: number;
+};
+
+export type Room = {
+  id: string;
+  room_number: string;
+  tenant_name: string | null;
+  phone: string | null;
+  base_rent: number;
+  utility_fee: number;
+  payment_status: 'Occupied' | 'Vacant' | 'Payment Pending' | 'Paid';
+  due_date: string | null;
+  created_at: string;
+};
+
+export type ParkingSlot = {
+  id: string;
+  slot_number: string;
+  vehicle_plate: string | null;
+  owner_name: string | null;
+  payment_status: 'Occupied' | 'Vacant' | 'Payment Pending' | 'Paid';
+  due_date: string | null;
+  created_at: string;
+};
+
