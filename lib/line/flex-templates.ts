@@ -11,8 +11,24 @@ export const commonQuickReply = {
       type: 'action',
       action: {
         type: 'message',
-        label: '🛒 เลือกขายของ',
+        label: '🛒 ขายของ',
         text: 'ขายของ',
+      },
+    },
+    {
+      type: 'action',
+      action: {
+        type: 'message',
+        label: '📦 เพิ่มของ',
+        text: 'เพิ่มของ',
+      },
+    },
+    {
+      type: 'action',
+      action: {
+        type: 'message',
+        label: '📊 สรุปยอดวันนี้',
+        text: 'สรุปวันนี้',
       },
     },
     {
@@ -29,22 +45,6 @@ export const commonQuickReply = {
         type: 'message',
         label: '🚗 ที่จอดรถ 8 คัน',
         text: 'ที่จอดรถ',
-      },
-    },
-    {
-      type: 'action',
-      action: {
-        type: 'message',
-        label: '📦 เพิ่มของเข้าร้าน',
-        text: 'วิธีเพิ่มของ',
-      },
-    },
-    {
-      type: 'action',
-      action: {
-        type: 'message',
-        label: '📊 สรุปยอดวันนี้',
-        text: 'สรุปวันนี้',
       },
     },
   ],
@@ -852,6 +852,7 @@ export function createProductCatalogFlex(products: Product[]) {
   const bubbles = products.slice(0, 10).map((prod) => {
     const isOutOfStock = prod.stock_qty <= 0;
     const profit = Math.max(0, prod.selling_price - prod.cost_price);
+    const headerBg = isOutOfStock ? '#64748B' : (prod.stock_qty <= 5 ? '#D97706' : '#16A34A');
 
     return {
       type: 'bubble',
@@ -859,7 +860,7 @@ export function createProductCatalogFlex(products: Product[]) {
       header: {
         type: 'box',
         layout: 'horizontal',
-        backgroundColor: '#16a34a',
+        backgroundColor: headerBg,
         paddingAll: '12px',
         contents: [
           {
@@ -869,12 +870,13 @@ export function createProductCatalogFlex(products: Product[]) {
             weight: 'bold',
             size: 'md',
             wrap: true,
+            maxLines: 2,
             flex: 3,
           },
           {
             type: 'box',
             layout: 'horizontal',
-            backgroundColor: isOutOfStock ? '#ef4444' : '#FFFFFF',
+            backgroundColor: '#FFFFFF',
             cornerRadius: 'sm',
             paddingStart: '6px',
             paddingEnd: '6px',
@@ -884,7 +886,7 @@ export function createProductCatalogFlex(products: Product[]) {
               {
                 type: 'text',
                 text: isOutOfStock ? 'หมด' : `เหลือ ${prod.stock_qty}`,
-                color: isOutOfStock ? '#FFFFFF' : '#16a34a',
+                color: isOutOfStock ? '#EF4444' : '#16A34A',
                 size: 'xxs',
                 weight: 'bold',
               },
@@ -896,30 +898,36 @@ export function createProductCatalogFlex(products: Product[]) {
         type: 'box',
         layout: 'vertical',
         spacing: 'sm',
-        paddingAll: '15px',
+        paddingAll: '14px',
         contents: [
           {
             type: 'box',
             layout: 'horizontal',
             contents: [
-              { type: 'text', text: 'ราคาป้าย:', size: 'sm', color: '#8E8E93', flex: 2 },
-              { type: 'text', text: `฿${prod.selling_price.toLocaleString()}`, size: 'md', weight: 'bold', color: '#16a34a', flex: 3 },
+              { type: 'text', text: 'ราคาขาย:', size: 'xs', color: '#8E8E93', flex: 2, gravity: 'center' },
+              { type: 'text', text: `฿${prod.selling_price.toLocaleString()}`, size: 'xl', weight: 'bold', color: '#16A34A', align: 'end', flex: 3 },
+            ],
+          },
+          {
+            type: 'separator',
+            margin: 'sm',
+            color: '#E5E5EA',
+          },
+          {
+            type: 'box',
+            layout: 'horizontal',
+            margin: 'sm',
+            contents: [
+              { type: 'text', text: 'ทุนชิ้นละ:', size: 'xs', color: '#8E8E93', flex: 2 },
+              { type: 'text', text: `฿${prod.cost_price.toLocaleString()}`, size: 'xs', color: '#1C1C1E', align: 'end', flex: 3 },
             ],
           },
           {
             type: 'box',
             layout: 'horizontal',
             contents: [
-              { type: 'text', text: 'ต้นทุนชิ้นละ:', size: 'xs', color: '#8E8E93', flex: 2 },
-              { type: 'text', text: `฿${prod.cost_price.toLocaleString()}`, size: 'xs', color: '#1C1C1E', flex: 3 },
-            ],
-          },
-          {
-            type: 'box',
-            layout: 'horizontal',
-            contents: [
-              { type: 'text', text: 'กำไรต่อชิ้น:', size: 'xs', color: '#8E8E93', flex: 2 },
-              { type: 'text', text: `฿${profit.toLocaleString()}`, size: 'xs', color: '#007AFF', weight: 'bold', flex: 3 },
+              { type: 'text', text: 'กำไร/ชิ้น:', size: 'xs', color: '#8E8E93', flex: 2 },
+              { type: 'text', text: `+฿${profit.toLocaleString()}`, size: 'xs', color: '#007AFF', weight: 'bold', align: 'end', flex: 3 },
             ],
           },
         ],
@@ -933,12 +941,12 @@ export function createProductCatalogFlex(products: Product[]) {
           {
             type: 'button',
             style: 'primary',
-            color: '#16a34a',
+            color: isOutOfStock ? '#64748B' : '#16A34A',
             height: 'sm',
             action: {
               type: 'postback',
-              label: `⚡ ขายตามป้าย ฿${prod.selling_price}`,
-              data: `action=quick_sell_product&product_id=${prod.id}&price=${prod.selling_price}&name=${encodeURIComponent(prod.name)}`,
+              label: `⚡ ขาย ฿${prod.selling_price}`,
+              data: `action=sell&id=${prod.id}&p=${prod.selling_price}`,
               displayText: `ขาย ${prod.name} ฿${prod.selling_price}`,
             },
           },
@@ -948,7 +956,7 @@ export function createProductCatalogFlex(products: Product[]) {
             height: 'sm',
             action: {
               type: 'message',
-              label: '✏️ ระบุราคาขายเอง',
+              label: '✏️ ระบุราคาเอง',
               text: `ขาย ${prod.name} `,
             },
           },
@@ -963,6 +971,174 @@ export function createProductCatalogFlex(products: Product[]) {
     contents: {
       type: 'carousel',
       contents: bubbles,
+    },
+    quickReply: commonQuickReply,
+  };
+}
+
+/**
+ * Interactive Help Card for Adding / Restocking Products
+ */
+export function createProductHelpFlex() {
+  return {
+    type: 'flex',
+    altText: '📦 วิธีเพิ่มของเข้าร้านโชห่วย',
+    contents: {
+      type: 'bubble',
+      size: 'mega',
+      header: {
+        type: 'box',
+        layout: 'vertical',
+        backgroundColor: '#16A34A',
+        paddingAll: '16px',
+        contents: [
+          {
+            type: 'text',
+            text: 'ระบบร้านค้าโชห่วย',
+            color: '#FFFFFFCC',
+            size: 'xs',
+            weight: 'bold',
+          },
+          {
+            type: 'text',
+            text: '📦 วิธีเพิ่มสินค้า / เติมของ',
+            color: '#FFFFFF',
+            size: 'lg',
+            weight: 'bold',
+            margin: 'xs',
+          },
+        ],
+      },
+      body: {
+        type: 'box',
+        layout: 'vertical',
+        spacing: 'md',
+        paddingAll: '16px',
+        backgroundColor: '#FFFFFF',
+        contents: [
+          {
+            type: 'text',
+            text: 'พิมพ์ 4 อย่างตามลำดับนี้ในแชตได้เลยครับ:',
+            size: 'sm',
+            weight: 'bold',
+            color: '#1C1C1E',
+          },
+          {
+            type: 'box',
+            layout: 'vertical',
+            spacing: 'xs',
+            backgroundColor: '#F0FDF4',
+            cornerRadius: 'md',
+            paddingAll: '12px',
+            borderColor: '#BBF7D0',
+            borderWidth: '1px',
+            contents: [
+              {
+                type: 'text',
+                text: 'เพิ่มของ [ชื่อสินค้า] [ทุน] [ราคาขาย] [จำนวน]',
+                size: 'xs',
+                weight: 'bold',
+                color: '#15803D',
+                wrap: true,
+              },
+            ],
+          },
+          {
+            type: 'box',
+            layout: 'vertical',
+            spacing: 'sm',
+            contents: [
+              {
+                type: 'text',
+                text: '💡 ตัวอย่างคำสั่งที่พิมพ์ส่งได้ทันที:',
+                size: 'xs',
+                weight: 'bold',
+                color: '#8E8E93',
+              },
+              {
+                type: 'box',
+                layout: 'vertical',
+                spacing: 'xs',
+                backgroundColor: '#F8F9FA',
+                cornerRadius: 'md',
+                paddingAll: '10px',
+                contents: [
+                  {
+                    type: 'text',
+                    text: '• เพิ่มของ โค้ก 10 15 24',
+                    size: 'xs',
+                    weight: 'bold',
+                    color: '#1C1C1E',
+                  },
+                  {
+                    type: 'text',
+                    text: '  (โค้ก ทุน 10.- / ขาย 15.- / มี 24 ชิ้น)',
+                    size: 'xxs',
+                    color: '#8E8E93',
+                  },
+                  {
+                    type: 'text',
+                    text: '• เพิ่มของ น้ำดื่ม 600 มล. 4.5 7 50',
+                    size: 'xs',
+                    weight: 'bold',
+                    color: '#1C1C1E',
+                    margin: 'xs',
+                  },
+                  {
+                    type: 'text',
+                    text: '  (น้ำดื่ม ทุน 4.5.- / ขาย 7.- / มี 50 ขวด)',
+                    size: 'xxs',
+                    color: '#8E8E93',
+                  },
+                  {
+                    type: 'text',
+                    text: '• เพิ่มของ ขนมปัง 15 20 10',
+                    size: 'xs',
+                    weight: 'bold',
+                    color: '#1C1C1E',
+                    margin: 'xs',
+                  },
+                  {
+                    type: 'text',
+                    text: '  (ขนมปัง ทุน 15.- / ขาย 20.- / มี 10 ห่อ)',
+                    size: 'xxs',
+                    color: '#8E8E93',
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+      footer: {
+        type: 'box',
+        layout: 'vertical',
+        spacing: 'xs',
+        paddingAll: '12px',
+        contents: [
+          {
+            type: 'button',
+            style: 'primary',
+            color: '#16A34A',
+            height: 'sm',
+            action: {
+              type: 'message',
+              label: '✏️ กดเพื่อเริ่มพิมพ์เพิ่มของ',
+              text: 'เพิ่มของ ',
+            },
+          },
+          {
+            type: 'button',
+            style: 'secondary',
+            height: 'sm',
+            action: {
+              type: 'message',
+              label: '🛒 ดูสินค้าที่มีในร้าน',
+              text: 'ขายของ',
+            },
+          },
+        ],
+      },
     },
     quickReply: commonQuickReply,
   };

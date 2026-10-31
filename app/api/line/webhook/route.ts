@@ -8,6 +8,7 @@ import {
   createDailySummaryFlex,
   createProductCatalogFlex,
   createProductAddedFlex,
+  createProductHelpFlex,
   commonQuickReply,
 } from '@/lib/line/flex-templates';
 import { supabase, RentalUnit, ParkingSlot, RentalBill, Product } from '@/lib/supabase';
@@ -229,7 +230,7 @@ async function handleTextCommand(text: string, replyToken: string, userId?: stri
   }
 
   // E1. Add/Restock Product: 'เพิ่มของ [ชื่อ] [ทุน] [ราคาขาย] [จำนวน]'
-  const addProdMatch = text.match(/^(?:เพิ่มของ|เพิ่มสินค้า)\s+([^\s]+)\s+(\d+(?:\.\d+)?)\s+(\d+(?:\.\d+)?)\s+(\d+(?:\.\d+)?)/i);
+  const addProdMatch = text.match(/^(?:เพิ่มของ|เพิ่มสินค้า|ลงของ)\s+(.+?)\s+(\d+(?:\.\d+)?)\s+(\d+(?:\.\d+)?)\s+(\d+(?:\.\d+)?)$/i);
   if (addProdMatch) {
     const prodName = addProdMatch[1].trim();
     const costPrice = parseFloat(addProdMatch[2]);
@@ -295,20 +296,14 @@ async function handleTextCommand(text: string, replyToken: string, userId?: stri
     return;
   }
 
-  // E2. Help for Add Product: 'วิธีเพิ่มของ' or 'เพิ่มของ'
-  if (['วิธีเพิ่มของ', 'เพิ่มของ', 'เพิ่มสินค้า'].some((k) => lower === k)) {
-    await replyLineMessage(replyToken, [
-      {
-        type: 'text',
-        text: `📦 วิธีเพิ่มของเข้าร้านโชห่วย:\n\nพิมพ์: เพิ่มของ [ชื่อสินค้า] [ต้นทุน] [ราคาขาย] [จำนวน]\n\nตัวอย่างเช่น:\n• เพิ่มของ โค้ก 10 15 24\n(โค้ก ทุน 10 บาท, ขาย 15 บาท, มี 24 ชิ้น)\n\n• เพิ่มของ น้ำดื่ม 4.5 7 50\n(น้ำดื่ม ทุน 4.5 บาท, ขาย 7 บาท, มี 50 ขวด)`,
-        quickReply: commonQuickReply,
-      },
-    ]);
+  // E2. Help for Add Product: 'วิธีเพิ่มของ', 'เพิ่มของ', 'ลงของ'
+  if (['วิธีเพิ่มของ', 'เพิ่มของ', 'เพิ่มสินค้า', 'ลงของ'].some((k) => lower === k)) {
+    await replyLineMessage(replyToken, [createProductHelpFlex()]);
     return;
   }
 
   // E3. Select Product to Sell: 'ขาย', 'ขายของ', 'เลือกของ', 'สินค้า'
-  if (['ขาย', 'ขายของ', 'เลือกของ', 'สินค้า', 'แคตตาล็อก'].some((k) => lower === k)) {
+  if (['ขาย', 'ขายของ', 'เลือกของ', 'สินค้า', 'แคตตาล็อก', 'เมนูขาย'].some((k) => lower === k)) {
     const { data: prods } = await supabase
       .from('products')
       .select('*')
@@ -330,7 +325,7 @@ async function handleTextCommand(text: string, replyToken: string, userId?: stri
   }
 
   // E4. Record Sale with Custom Price: 'ขาย [ชื่อสินค้า/หมวด] [ราคา]'
-  const saleMatch = text.match(/^ขาย\s+([^\s]+)\s*(\d+(?:\.\d+)?)/i);
+  const saleMatch = text.match(/^ขาย\s+(.+?)\s+(\d+(?:\.\d+)?)$/i);
   if (saleMatch) {
     const itemName = saleMatch[1].trim();
     const price = parseFloat(saleMatch[2]);
@@ -381,6 +376,31 @@ async function handleTextCommand(text: string, replyToken: string, userId?: stri
         {
           type: 'text',
           text: `🛒 บันทึกยอดขายสำเร็จ!\nสินค้า: ${matchedProd ? matchedProd.name : itemName}\nราคาขาย: ฿${price.toLocaleString()} (กำไร +฿${profit.toLocaleString()})${remainingStockStr}\nซิงค์กับระบบ POS หน้าร้านเรียบร้อยแล้ว ✅`,
+          quickReply: commonQuickReply,
+        },
+      ]);
+      return;
+    }
+  }
+
+  // E5. Search Product to Sell: 'ขาย [ชื่อ]' or 'หา [ชื่อ]'
+  const searchProductMatch = text.match(/^(?:ขาย|ค้นหา|หา)\s+(.+)$/i);
+  if (searchProductMatch) {
+    const keyword = searchProductMatch[1].trim();
+    const { data: matchedProds } = await supabase
+      .from('products')
+      .select('*')
+      .ilike('name', `%${keyword}%`)
+      .order('name');
+
+    if (matchedProds && matchedProds.length > 0) {
+      await replyLineMessage(replyToken, [createProductCatalogFlex(matchedProds as Product[])]);
+      return;
+    } else {
+      await replyLineMessage(replyToken, [
+        {
+          type: 'text',
+          text: `🔍 ไม่พบสินค้าที่ตรงกับ '${keyword}' ในคลัง\n\n💡 พิมพ์ 'ขายของ' เพื่อดูสินค้าทั้งหมด หรือพิมพ์ 'เพิ่มของ' เพื่อลงสินค้าใหม่ครับ`,
           quickReply: commonQuickReply,
         },
       ]);
@@ -610,9 +630,9 @@ async function handlePostbackEvent(event: any, replyToken: string, userId?: stri
     return;
   }
 
-  if (action === 'quick_sell_product') {
-    const prodId = params.get('product_id');
-    const price = parseFloat(params.get('price') || '0');
+  if (action === 'sell' || action === 'quick_sell_product') {
+    const prodId = params.get('id') || params.get('product_id');
+    const price = parseFloat(params.get('p') || params.get('price') || '0');
     const prodName = decodeURIComponent(params.get('name') || 'สินค้า');
 
     let costPrice = 0;
