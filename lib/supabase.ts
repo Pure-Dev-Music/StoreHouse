@@ -78,8 +78,51 @@ export type ParkingSlot = {
   slot_number: string;
   vehicle_plate: string | null;
   owner_name: string | null;
+  phone?: string | null;
+  monthly_fee?: number;
   payment_status: 'Occupied' | 'Vacant' | 'Payment Pending' | 'Paid';
   due_date: string | null;
+  created_at: string;
+};
+
+export type RentalUnit = {
+  id: string;
+  unit_number: string;
+  unit_type: 'room' | 'house';
+  tenant_name: string | null;
+  phone: string | null;
+  base_rent: number;
+  water_fee: number;
+  electricity_rate: number;
+  last_meter_reading: number;
+  payment_status: 'Occupied' | 'Vacant' | 'Payment Pending' | 'Paid';
+  due_date: string | null;
+  created_at: string;
+};
+
+export type RentalBill = {
+  id: string;
+  unit_id: string;
+  unit_number: string;
+  billing_month: string;
+  previous_meter: number;
+  current_meter: number;
+  electricity_units: number;
+  electricity_cost: number;
+  water_cost: number;
+  rent_cost: number;
+  total_amount: number;
+  payment_status: 'Pending' | 'Paid';
+  paid_at: string | null;
+  recorded_by: string | null;
+  created_at: string;
+};
+
+export type StoreExpense = {
+  id: string;
+  title: string;
+  amount: number;
+  recorded_by: string | null;
   created_at: string;
 };
 

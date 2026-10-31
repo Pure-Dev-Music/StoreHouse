@@ -101,15 +101,15 @@ export default function HomePage() {
         {/* Stream 2: Room Rental */}
         <Box>
           <Typography variant="h6" sx={{ fontWeight: 900, color: "#1e293b", mb: 2, display: "flex", alignItems: "center", gap: 1 }}>
-            <MeetingRoomIcon sx={{ color: "#7c3aed" }} /> 2. บ้านเช่า/ห้องเช่า (Room Rental)
+            <MeetingRoomIcon sx={{ color: "#7c3aed" }} /> 2. บ้านเช่า/ห้องเช่า (11 ยูนิต)
           </Typography>
           <Grid container spacing={2}>
             <Grid size={{ xs: 12 }}>
               <ActionCard
                 emoji="🏠"
                 icon={<MeetingRoomIcon sx={{ fontSize: 36 }} />}
-                title="จัดการห้องพัก (10 ห้อง)"
-                subtitle="การ์ดสถานะผู้เช่า, ค้างชำระ & ออกบิลเหมาจ่ายน้ำไฟ 200 บาท"
+                title="จัดการห้องพัก & บ้านเช่า (11 ยูนิต)"
+                subtitle="10 ห้องพัก + 1 บ้านเช่า | จดมิเตอร์ไฟ, ค่าน้ำเหมาจ่าย & ซิงค์กับ LINE OA"
                 color1="#7c3aed"
                 color2="#8b5cf6"
                 shadow="rgba(124,58,237,0.15)"
