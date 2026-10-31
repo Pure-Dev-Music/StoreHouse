@@ -1,4 +1,4 @@
-import { RentalUnit, RentalBill, ParkingSlot } from '@/lib/supabase';
+import { RentalUnit, RentalBill, ParkingSlot, Product } from '@/lib/supabase';
 
 const WEB_URL = 'https://store-house-amber.vercel.app';
 
@@ -7,6 +7,14 @@ const WEB_URL = 'https://store-house-amber.vercel.app';
  */
 export const commonQuickReply = {
   items: [
+    {
+      type: 'action',
+      action: {
+        type: 'message',
+        label: '🛒 เลือกขายของ',
+        text: 'ขายของ',
+      },
+    },
     {
       type: 'action',
       action: {
@@ -27,16 +35,16 @@ export const commonQuickReply = {
       type: 'action',
       action: {
         type: 'message',
-        label: '🛒 สรุปยอดโชห่วย',
-        text: 'สรุปวันนี้',
+        label: '📦 เพิ่มของเข้าร้าน',
+        text: 'วิธีเพิ่มของ',
       },
     },
     {
       type: 'action',
       action: {
-        type: 'uri',
-        label: '💻 เปิดเว็บ',
-        uri: WEB_URL,
+        type: 'message',
+        label: '📊 สรุปยอดวันนี้',
+        text: 'สรุปวันนี้',
       },
     },
   ],
@@ -828,6 +836,245 @@ export function createDailySummaryFlex(data: {
               type: 'uri',
               label: '📊 ดูรายงานการขายแบบละเอียดบนเว็บ',
               uri: `${WEB_URL}/th/sales`,
+            },
+          },
+        ],
+      },
+    },
+    quickReply: commonQuickReply,
+  };
+}
+
+/**
+ * 6. Product Catalog Carousel for Easy Selection & Selling
+ */
+export function createProductCatalogFlex(products: Product[]) {
+  const bubbles = products.slice(0, 10).map((prod) => {
+    const isOutOfStock = prod.stock_qty <= 0;
+    const profit = Math.max(0, prod.selling_price - prod.cost_price);
+
+    return {
+      type: 'bubble',
+      size: 'kilo',
+      header: {
+        type: 'box',
+        layout: 'horizontal',
+        backgroundColor: '#16a34a',
+        paddingAll: '12px',
+        contents: [
+          {
+            type: 'text',
+            text: prod.name,
+            color: '#FFFFFF',
+            weight: 'bold',
+            size: 'md',
+            wrap: true,
+            flex: 3,
+          },
+          {
+            type: 'box',
+            layout: 'horizontal',
+            backgroundColor: isOutOfStock ? '#ef4444' : '#FFFFFF',
+            cornerRadius: 'sm',
+            paddingStart: '6px',
+            paddingEnd: '6px',
+            paddingTop: '2px',
+            paddingBottom: '2px',
+            contents: [
+              {
+                type: 'text',
+                text: isOutOfStock ? 'หมด' : `เหลือ ${prod.stock_qty}`,
+                color: isOutOfStock ? '#FFFFFF' : '#16a34a',
+                size: 'xxs',
+                weight: 'bold',
+              },
+            ],
+          },
+        ],
+      },
+      body: {
+        type: 'box',
+        layout: 'vertical',
+        spacing: 'sm',
+        paddingAll: '15px',
+        contents: [
+          {
+            type: 'box',
+            layout: 'horizontal',
+            contents: [
+              { type: 'text', text: 'ราคาป้าย:', size: 'sm', color: '#8E8E93', flex: 2 },
+              { type: 'text', text: `฿${prod.selling_price.toLocaleString()}`, size: 'md', weight: 'bold', color: '#16a34a', flex: 3 },
+            ],
+          },
+          {
+            type: 'box',
+            layout: 'horizontal',
+            contents: [
+              { type: 'text', text: 'ต้นทุนชิ้นละ:', size: 'xs', color: '#8E8E93', flex: 2 },
+              { type: 'text', text: `฿${prod.cost_price.toLocaleString()}`, size: 'xs', color: '#1C1C1E', flex: 3 },
+            ],
+          },
+          {
+            type: 'box',
+            layout: 'horizontal',
+            contents: [
+              { type: 'text', text: 'กำไรต่อชิ้น:', size: 'xs', color: '#8E8E93', flex: 2 },
+              { type: 'text', text: `฿${profit.toLocaleString()}`, size: 'xs', color: '#007AFF', weight: 'bold', flex: 3 },
+            ],
+          },
+        ],
+      },
+      footer: {
+        type: 'box',
+        layout: 'vertical',
+        spacing: 'xs',
+        paddingAll: '10px',
+        contents: [
+          {
+            type: 'button',
+            style: 'primary',
+            color: '#16a34a',
+            height: 'sm',
+            action: {
+              type: 'postback',
+              label: `⚡ ขายตามป้าย ฿${prod.selling_price}`,
+              data: `action=quick_sell_product&product_id=${prod.id}&price=${prod.selling_price}&name=${encodeURIComponent(prod.name)}`,
+              displayText: `ขาย ${prod.name} ฿${prod.selling_price}`,
+            },
+          },
+          {
+            type: 'button',
+            style: 'secondary',
+            height: 'sm',
+            action: {
+              type: 'message',
+              label: '✏️ ระบุราคาขายเอง',
+              text: `ขาย ${prod.name} `,
+            },
+          },
+        ],
+      },
+    };
+  });
+
+  return {
+    type: 'flex',
+    altText: '🛒 รายการสินค้าในร้านโชห่วย (เลือกขายได้ทันที)',
+    contents: {
+      type: 'carousel',
+      contents: bubbles,
+    },
+    quickReply: commonQuickReply,
+  };
+}
+
+/**
+ * 7. Confirmation Card after adding/restocking a product
+ */
+export function createProductAddedFlex(prod: {
+  name: string;
+  cost_price: number;
+  selling_price: number;
+  stock_qty: number;
+  added_qty: number;
+}) {
+  const profitPerItem = Math.max(0, prod.selling_price - prod.cost_price);
+  const marginPercent = prod.selling_price > 0 ? Math.round((profitPerItem / prod.selling_price) * 100) : 0;
+
+  return {
+    type: 'flex',
+    altText: `📦 บันทึกสินค้า ${prod.name} เรียบร้อยแล้ว`,
+    contents: {
+      type: 'bubble',
+      size: 'mega',
+      header: {
+        type: 'box',
+        layout: 'vertical',
+        backgroundColor: '#16a34a',
+        paddingAll: '15px',
+        contents: [
+          {
+            type: 'text',
+            text: 'บันทึกสินค้าเข้าร้านสำเร็จ',
+            color: '#FFFFFFCC',
+            size: 'xs',
+            weight: 'bold',
+          },
+          {
+            type: 'text',
+            text: `📦 ${prod.name}`,
+            color: '#FFFFFF',
+            size: 'xl',
+            weight: 'bold',
+            margin: 'xs',
+          },
+        ],
+      },
+      body: {
+        type: 'box',
+        layout: 'vertical',
+        spacing: 'sm',
+        paddingAll: '20px',
+        backgroundColor: '#F8F9FA',
+        contents: [
+          {
+            type: 'box',
+            layout: 'horizontal',
+            contents: [
+              { type: 'text', text: 'ต้นทุนต่อชิ้น:', size: 'sm', color: '#8E8E93', flex: 3 },
+              { type: 'text', text: `฿${prod.cost_price.toLocaleString()}`, size: 'sm', weight: 'bold', align: 'end', color: '#1C1C1E', flex: 2 },
+            ],
+          },
+          {
+            type: 'box',
+            layout: 'horizontal',
+            contents: [
+              { type: 'text', text: 'ราคาขายหน้าร้าน:', size: 'sm', color: '#8E8E93', flex: 3 },
+              { type: 'text', text: `฿${prod.selling_price.toLocaleString()}`, size: 'sm', weight: 'bold', align: 'end', color: '#16a34a', flex: 2 },
+            ],
+          },
+          {
+            type: 'box',
+            layout: 'horizontal',
+            contents: [
+              { type: 'text', text: 'กำไรต่อชิ้น (Margin):', size: 'sm', color: '#8E8E93', flex: 3 },
+              { type: 'text', text: `+฿${profitPerItem.toLocaleString()} (${marginPercent}%)`, size: 'sm', weight: 'bold', align: 'end', color: '#007AFF', flex: 2 },
+            ],
+          },
+          { type: 'separator', margin: 'md', color: '#E5E5EA' },
+          {
+            type: 'box',
+            layout: 'horizontal',
+            margin: 'md',
+            contents: [
+              { type: 'text', text: 'จำนวนที่เพิ่มรอบนี้:', size: 'sm', color: '#8E8E93', flex: 3 },
+              { type: 'text', text: `+${prod.added_qty} ชิ้น`, size: 'sm', weight: 'bold', align: 'end', color: '#1C1C1E', flex: 2 },
+            ],
+          },
+          {
+            type: 'box',
+            layout: 'horizontal',
+            contents: [
+              { type: 'text', text: 'สต็อกคงเหลือรวมทั้งหมด:', size: 'md', weight: 'bold', color: '#1C1C1E', flex: 3 },
+              { type: 'text', text: `${prod.stock_qty} ชิ้น`, size: 'lg', weight: 'bold', align: 'end', color: '#007AFF', flex: 2 },
+            ],
+          },
+        ],
+      },
+      footer: {
+        type: 'box',
+        layout: 'vertical',
+        spacing: 'xs',
+        paddingAll: '12px',
+        contents: [
+          {
+            type: 'button',
+            style: 'secondary',
+            height: 'sm',
+            action: {
+              type: 'message',
+              label: `🛒 ขาย ${prod.name}`,
+              text: `ขาย ${prod.name} `,
             },
           },
         ],

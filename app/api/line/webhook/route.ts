@@ -6,9 +6,11 @@ import {
   createParkingCarouselFlex,
   createBillReceiptFlex,
   createDailySummaryFlex,
+  createProductCatalogFlex,
+  createProductAddedFlex,
   commonQuickReply,
 } from '@/lib/line/flex-templates';
-import { supabase, RentalUnit, ParkingSlot, RentalBill } from '@/lib/supabase';
+import { supabase, RentalUnit, ParkingSlot, RentalBill, Product } from '@/lib/supabase';
 import { format } from 'date-fns';
 import { th } from 'date-fns/locale';
 
@@ -226,7 +228,108 @@ async function handleTextCommand(text: string, replyToken: string, userId?: stri
     return;
   }
 
-  // E. Record Quick Sale: 'ขาย [ชื่อสินค้า/หมวด] [ราคา]'
+  // E1. Add/Restock Product: 'เพิ่มของ [ชื่อ] [ทุน] [ราคาขาย] [จำนวน]'
+  const addProdMatch = text.match(/^(?:เพิ่มของ|เพิ่มสินค้า)\s+([^\s]+)\s+(\d+(?:\.\d+)?)\s+(\d+(?:\.\d+)?)\s+(\d+(?:\.\d+)?)/i);
+  if (addProdMatch) {
+    const prodName = addProdMatch[1].trim();
+    const costPrice = parseFloat(addProdMatch[2]);
+    const sellPrice = parseFloat(addProdMatch[3]);
+    const addQty = parseFloat(addProdMatch[4]);
+
+    // Check if product already exists
+    const { data: existing } = await supabase
+      .from('products')
+      .select('*')
+      .ilike('name', prodName)
+      .limit(1);
+
+    let savedProd: any = null;
+
+    if (existing && existing.length > 0) {
+      const p = existing[0];
+      const newQty = (p.stock_qty || 0) + addQty;
+      const { data } = await supabase
+        .from('products')
+        .update({
+          cost_price: costPrice,
+          selling_price: sellPrice,
+          stock_qty: newQty,
+        })
+        .eq('id', p.id)
+        .select()
+        .single();
+      savedProd = data;
+    } else {
+      const { data } = await supabase
+        .from('products')
+        .insert({
+          name: prodName,
+          cost_price: costPrice,
+          selling_price: sellPrice,
+          stock_qty: addQty,
+        })
+        .select()
+        .single();
+      savedProd = data;
+    }
+
+    if (savedProd) {
+      await replyLineMessage(replyToken, [
+        createProductAddedFlex({
+          name: savedProd.name,
+          cost_price: savedProd.cost_price,
+          selling_price: savedProd.selling_price,
+          stock_qty: savedProd.stock_qty,
+          added_qty: addQty,
+        }),
+      ]);
+    } else {
+      await replyLineMessage(replyToken, [
+        {
+          type: 'text',
+          text: `❌ ไม่สามารถบันทึกสินค้า ${prodName} ได้ กรุณาลองใหม่อีกครั้ง`,
+          quickReply: commonQuickReply,
+        },
+      ]);
+    }
+    return;
+  }
+
+  // E2. Help for Add Product: 'วิธีเพิ่มของ' or 'เพิ่มของ'
+  if (['วิธีเพิ่มของ', 'เพิ่มของ', 'เพิ่มสินค้า'].some((k) => lower === k)) {
+    await replyLineMessage(replyToken, [
+      {
+        type: 'text',
+        text: `📦 วิธีเพิ่มของเข้าร้านโชห่วย:\n\nพิมพ์: เพิ่มของ [ชื่อสินค้า] [ต้นทุน] [ราคาขาย] [จำนวน]\n\nตัวอย่างเช่น:\n• เพิ่มของ โค้ก 10 15 24\n(โค้ก ทุน 10 บาท, ขาย 15 บาท, มี 24 ชิ้น)\n\n• เพิ่มของ น้ำดื่ม 4.5 7 50\n(น้ำดื่ม ทุน 4.5 บาท, ขาย 7 บาท, มี 50 ขวด)`,
+        quickReply: commonQuickReply,
+      },
+    ]);
+    return;
+  }
+
+  // E3. Select Product to Sell: 'ขาย', 'ขายของ', 'เลือกของ', 'สินค้า'
+  if (['ขาย', 'ขายของ', 'เลือกของ', 'สินค้า', 'แคตตาล็อก'].some((k) => lower === k)) {
+    const { data: prods } = await supabase
+      .from('products')
+      .select('*')
+      .order('name');
+
+    if (prods && prods.length > 0) {
+      await replyLineMessage(replyToken, [createProductCatalogFlex(prods as Product[])]);
+      return;
+    } else {
+      await replyLineMessage(replyToken, [
+        {
+          type: 'text',
+          text: '🛒 ยังไม่มีรายการสินค้าในร้าน กรุณาพิมพ์เพิ่มสินค้าก่อน เช่น:\nเพิ่มของ โค้ก 10 15 24',
+          quickReply: commonQuickReply,
+        },
+      ]);
+      return;
+    }
+  }
+
+  // E4. Record Sale with Custom Price: 'ขาย [ชื่อสินค้า/หมวด] [ราคา]'
   const saleMatch = text.match(/^ขาย\s+([^\s]+)\s*(\d+(?:\.\d+)?)/i);
   if (saleMatch) {
     const itemName = saleMatch[1].trim();
@@ -264,19 +367,20 @@ async function handleTextCommand(text: string, replyToken: string, userId?: stri
       });
 
       // Deduct stock if matched
+      let remainingStockStr = '';
       if (matchedProd && matchedProd.stock_qty > 0) {
+        const remaining = Math.max(0, matchedProd.stock_qty - 1);
         await supabase
           .from('products')
-          .update({ stock_qty: Math.max(0, matchedProd.stock_qty - 1) })
+          .update({ stock_qty: remaining })
           .eq('id', matchedProd.id);
+        remainingStockStr = ` (สต็อกคงเหลือ ${remaining} ชิ้น)`;
       }
 
       await replyLineMessage(replyToken, [
         {
           type: 'text',
-          text: `🛒 บันทึกยอดขายสำเร็จ!\nสินค้า: ${itemName}\nราคา: ฿${price.toLocaleString()}\nกำไร: ฿${profit.toLocaleString()}${
-            matchedProd ? ` (สต็อกคงเหลือ ${matchedProd.stock_qty - 1})` : ''
-          }\nซิงค์กับระบบ POS บนเว็บเรียบร้อยแล้ว ✅`,
+          text: `🛒 บันทึกยอดขายสำเร็จ!\nสินค้า: ${matchedProd ? matchedProd.name : itemName}\nราคาขาย: ฿${price.toLocaleString()} (กำไร +฿${profit.toLocaleString()})${remainingStockStr}\nซิงค์กับระบบ POS หน้าร้านเรียบร้อยแล้ว ✅`,
           quickReply: commonQuickReply,
         },
       ]);
@@ -503,6 +607,66 @@ async function handlePostbackEvent(event: any, replyToken: string, userId?: stri
         },
       ]);
     }
+    return;
+  }
+
+  if (action === 'quick_sell_product') {
+    const prodId = params.get('product_id');
+    const price = parseFloat(params.get('price') || '0');
+    const prodName = decodeURIComponent(params.get('name') || 'สินค้า');
+
+    let costPrice = 0;
+    let remainingStock = 0;
+    let actualName = prodName;
+
+    if (prodId) {
+      const { data: prod } = await supabase
+        .from('products')
+        .select('*')
+        .eq('id', prodId)
+        .single();
+
+      if (prod) {
+        actualName = prod.name;
+        costPrice = prod.cost_price || 0;
+        remainingStock = Math.max(0, (prod.stock_qty || 0) - 1);
+
+        await supabase
+          .from('products')
+          .update({ stock_qty: remainingStock })
+          .eq('id', prod.id);
+      }
+    }
+
+    const profit = Math.max(0, price - costPrice);
+
+    const { data: sale } = await supabase
+      .from('sales')
+      .insert({
+        total_amount: price,
+        total_cost: costPrice,
+        total_profit: profit,
+      })
+      .select()
+      .single();
+
+    if (sale) {
+      await supabase.from('sale_items').insert({
+        sale_id: sale.id,
+        product_id: prodId || null,
+        quantity: 1,
+        unit_price: price,
+        unit_cost: costPrice,
+      });
+    }
+
+    await replyLineMessage(replyToken, [
+      {
+        type: 'text',
+        text: `⚡ ขายตามป้ายสำเร็จ!\n\n📦 สินค้า: ${actualName}\n💵 ราคาขาย: ฿${price.toLocaleString()} บาท\n📈 กำไร: +฿${profit.toLocaleString()} บาท\n📊 สต็อกคงเหลือ: ${remainingStock} ชิ้น\n\nระบบบันทึกยอดขายและซิงค์ POS หน้าร้านเรียบร้อยแล้ว ✅`,
+        quickReply: commonQuickReply,
+      },
+    ]);
     return;
   }
 }
